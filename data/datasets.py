@@ -18,7 +18,7 @@ class ModulationsDataset(Dataset):
     ):
         self.path = path
         self.mods = modulations
-        self.snrs = [str(snr) + "_db" for snr in snrs]
+        self.snr_fs = [str(snr) + "_db" for snr in snrs]
         self.images = []
         self.labels = []
         self.cumulants = []
@@ -32,10 +32,9 @@ class ModulationsDataset(Dataset):
 
     def _generate_from_directory(self):
         for mod in self.mods:
-            for snr in self.snrs:
+            for snr in self.snr_fs:
                 path = os.path.join(self.path, mod, snr)
-
-                images = os.listdir(path)
+                images = [os.path.join(path,img) for img in os.listdir(path)]
                 cumulants = [p.replace('images', 'cumulants').replace('.png', '.cum') for p in images]
                 labels = [mod for _ in images]
                 snrs = [snr for _ in images]
