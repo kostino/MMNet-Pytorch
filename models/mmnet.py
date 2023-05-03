@@ -67,8 +67,15 @@ class MMNet(nn.Module):
 
 
 if __name__ == "__main__":
-    img = torch.randint(0, 255, (16, 3, 224, 224)).float()
-    cum = torch.rand((16, 18)).float()
+    batch_size = 16
+    img_size = (3, 224, 224)
+    cum_len = 18
+
+    img = torch.randint(0, 255, (batch_size, *img_size)).float()
+    cum = torch.rand((batch_size, cum_len)).float()
+
     model = MMNet()
     res = model(cum, img)
-    print(res.size())
+    assert res.size() == (batch_size, 8)
+    pytorch_total_params = sum(p.numel() for p in model.parameters())
+    print('Model total params: {}'.format(pytorch_total_params))

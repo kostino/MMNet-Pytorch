@@ -78,5 +78,9 @@ class ModulationsDataset(Dataset):
         return image, cumulants, snr, label
 
 
-
-
+if __name__ == "__main__":
+    path = '../../AutoModClass/AutoModClass/hybrid_dataset/training/images'
+    mods = os.listdir(path)
+    snrs = [0, 5, 10, 15]
+    dataset = ModulationsDataset(path, mods, snrs)
+    a = dataset[0]
