@@ -2,7 +2,7 @@ import os
 from typing import List
 
 import torch
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, Subset
 from torchvision.transforms.functional import to_tensor
 from PIL import Image
 import numpy as np
@@ -79,8 +79,20 @@ class ModulationsDataset(Dataset):
 
 
 if __name__ == "__main__":
+    from sklearn.model_selection import train_test_split
     path = '../../AutoModClass/AutoModClass/hybrid_dataset/training/images'
     mods = os.listdir(path)
     snrs = [0, 5, 10, 15]
     dataset = ModulationsDataset(path, mods, snrs)
-    a = dataset[0]
+
+    val_ratio = 0.2
+
+    train_idx, val_idx = train_test_split(np.arange(len(dataset)),
+                                             test_size=val_ratio,
+                                             random_state=123,
+                                             shuffle=True,
+                                             stratify=dataset.labels)
+
+    # Subset dataset for train and val
+    train_dataset = Subset(dataset, train_idx)
+    validation_dataset = Subset(dataset, val_idx)
