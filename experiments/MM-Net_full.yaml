@@ -1,0 +1,26 @@
+NAME: 'MM-Net_full'
+
+CUDNN:
+  BENCHMARK: true
+  DETERMINISTIC: false
+  ENABLED: true
+
+TRAIN:
+  BATCH_SIZE: 100
+  VAL_RATIO: 0.2
+  LEARNING_RATE: 0.001
+  NUM_EPOCHS: 30
+
+DATA:
+  BASE_PATH: "../AutoModClass/AutoModClass/hybrid_dataset/training/images"
+  MODS:
+    - '16APSK'
+    - '16PAM'
+    - '16QAM'
+    - '4PAM'
+    - '64APSK'
+    - '64QAM'
+    - '8PSK'
+    - 'QPSK'
+  SNRS: [0, 5, 10, 15]
+

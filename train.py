@@ -11,7 +11,10 @@ import numpy as np
 
 from models.mmnet import MMNet
 from data.datasets import ModulationsDataset
-import base_config as cfg
+from common.utils import update_config
+from common.config import _C as cfg
+
+cfg = update_config(cfg, 'experiments/MM-Net_full.yaml')
 
 dataset = ModulationsDataset(cfg.BASE_PATH, cfg.MODS, cfg.SNRS)
 

@@ -1,0 +1,22 @@
+from yacs.config import CfgNode as CN
+
+_C = CN()
+
+_C.DATA = CN()
+_C.DATA.BASE_PATH = ''
+_C.DATA.MODS = []
+_C.DATA.SNRS = []
+
+_C.TRAIN = CN()
+_C.TRAIN.VAL_RATIO = 0.2
+_C.TRAIN.BATCH_SIZE = 100
+_C.TRAIN.LEARNING_RATE = 1e-3
+_C.TRAIN.NUM_EPOCHS = 30
+
+_C.CUDNN = CN()
+_C.CUDNN.BENCHMARK = False
+_C.CUDNN.DETERMINISTIC = False
+_C.CUDNN.ENABLED = False
+
+_C.MODEL_NAME = "MM-NET"
+
