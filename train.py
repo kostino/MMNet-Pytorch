@@ -16,10 +16,15 @@ from common.config import _C as cfg
 
 cfg = update_config(cfg, 'experiments/MM-Net_full.yaml')
 
-dataset = ModulationsDataset(cfg.BASE_PATH, cfg.MODS, cfg.SNRS)
+if torch.cuda.is_available():
+    torch.backends.cudnn.benchmark = cfg.CUDNN.BENCHMARK
+    torch.backends.cudnn.deterministic = cfg.CUDNN.DETERMINISTIC
+    torch.backends.cudnn.enabled = cfg.CUDNN.ENABLED
+
+dataset = ModulationsDataset(cfg.DATA.BASE_PATH, cfg.DATA.MODS, cfg.DATA.SNRS)
 
 train_idx, val_idx = train_test_split(np.arange(len(dataset)),
-                                      test_size=cfg.VAL_RATIO,
+                                      test_size=cfg.TRAIN.VAL_RATIO,
                                       random_state=123,
                                       shuffle=True,
                                       stratify=dataset.labels)
@@ -27,16 +32,16 @@ train_idx, val_idx = train_test_split(np.arange(len(dataset)),
 # Subset dataset for train and val
 train_dataset = Subset(dataset, train_idx)
 validation_dataset = Subset(dataset, val_idx)
-STEPS = len(train_dataset) // cfg.BATCH_SIZE
-VAL_STEPS = len(validation_dataset) // cfg.BATCH_SIZE
+STEPS = len(train_dataset) // cfg.TRAIN.BATCH_SIZE
+VAL_STEPS = len(validation_dataset) // cfg.TRAIN.BATCH_SIZE
 train_loader = DataLoader(train_dataset,
-                          batch_size=cfg.BATCH_SIZE,
+                          batch_size=cfg.TRAIN.BATCH_SIZE,
                           shuffle=True,
                           num_workers=4,
                           pin_memory=True)
 
 val_loader = DataLoader(validation_dataset,
-                        batch_size=cfg.BATCH_SIZE,
+                        batch_size=cfg.TRAIN.BATCH_SIZE,
                         shuffle=True,
                         num_workers=4,
                         pin_memory=True)
@@ -44,15 +49,15 @@ val_loader = DataLoader(validation_dataset,
 model = MMNet()
 model.cuda()
 
-optimizer = SGD(model.parameters(), cfg.LEARNING_RATE, momentum=0.9)
+optimizer = SGD(model.parameters(), cfg.TRAIN.LEARNING_RATE, momentum=0.9)
 
 scheduler = StepLR(optimizer, step_size=2, gamma=.7)
 
 epoch_losses = []
 epoch_val_losses = []
 def train():
-    for epoch in range(cfg.NUM_EPOCHS):
-        pbar = tqdm(train_loader, desc='Training Epoch {}/{}'.format(epoch, cfg.NUM_EPOCHS), unit='steps')
+    for epoch in range(cfg.TRAIN.NUM_EPOCHS):
+        pbar = tqdm(train_loader, desc='Training Epoch {}/{}'.format(epoch, cfg.TRAIN.NUM_EPOCHS), unit='steps')
         model.train()
         cum_loss = 0
         for step, inp in enumerate(pbar):
@@ -78,7 +83,7 @@ def train():
         epoch_losses.append(epoch_loss)
         scheduler.step()
 
-        pbar = tqdm(val_loader, desc='Validating Epoch {}/{}'.format(epoch, cfg.NUM_EPOCHS), unit='steps')
+        pbar = tqdm(val_loader, desc='Validating Epoch {}/{}'.format(epoch, cfg.TRAIN.NUM_EPOCHS), unit='steps')
         model.eval()
         cum_loss = 0
         for step, inp in enumerate(pbar):

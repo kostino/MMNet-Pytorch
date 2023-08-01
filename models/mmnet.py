@@ -78,4 +78,4 @@ if __name__ == "__main__":
     res = model(cum, img)
     assert res.size() == (batch_size, 8)
     pytorch_total_params = sum(p.numel() for p in model.parameters())
-    print('Model total params: {}'.format(pytorch_total_params))
+    print(f'Model total params: {pytorch_total_params:_}')

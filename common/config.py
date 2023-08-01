@@ -1,7 +1,7 @@
 from yacs.config import CfgNode as CN
 
 _C = CN()
-
+_C.MODEL_NAME = 'TEST'
 _C.DATA = CN()
 _C.DATA.BASE_PATH = ''
 _C.DATA.MODS = []

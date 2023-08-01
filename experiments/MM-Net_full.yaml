@@ -1,4 +1,4 @@
-NAME: 'MM-Net_full'
+MODEL_NAME: 'MM-Net_full'
 
 CUDNN:
   BENCHMARK: true
