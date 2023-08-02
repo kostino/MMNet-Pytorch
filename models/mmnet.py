@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 from torchvision.models import resnet152, ResNet152_Weights
+import timm
 
 
 class CumulantEncoder(nn.Sequential):
@@ -12,12 +13,20 @@ class CumulantEncoder(nn.Sequential):
 
 
 class ConvolutionalFeatureExtractor(nn.Module):
-    def __init__(self, freeze: bool = True):
+    def __init__(self,backbone:str, freeze: bool = True):
 
         super().__init__()
-        pretrained = resnet152(weights=ResNet152_Weights.IMAGENET1K_V2)
-        modules = list(pretrained.children())[:-2]
-        self.feat_extractor = nn.Sequential(*modules)
+        if backbone == 'ResNet152v2':
+            pretrained = resnet152(weights=ResNet152_Weights.IMAGENET1K_V2)
+            modules = list(pretrained.children())[:-2]
+            self.feat_extractor = nn.Sequential(*modules)
+        elif backbone in timm.list_models(pretrained=True):
+            self.feat_extractor = timm.create_model(backbone, pretrained=True, num_classes=0, global_pool='')
+        else:
+            raise ValueError(f'Backbone {backbone} not supported')
+
+
+
         if freeze:
             for param in self.feat_extractor.parameters():
                 param.requires_grad = False
@@ -42,9 +51,9 @@ class ConvolutionalFeatureExtractor(nn.Module):
 
 
 class MMNet(nn.Module):
-    def __init__(self, freeze_cnn: bool = True, num_class: int = 8):
+    def __init__(self, backbone: str='ResNet152v2', freeze_cnn: bool = True, num_class: int = 8):
         super().__init__()
-        self.conv_feat_extract = ConvolutionalFeatureExtractor(freeze=freeze_cnn)
+        self.conv_feat_extract = ConvolutionalFeatureExtractor(backbone=backbone, freeze=freeze_cnn)
         self.cum_feat_extract = CumulantEncoder()
         self.num_class = num_class
 
@@ -74,7 +83,7 @@ if __name__ == "__main__":
     img = torch.randint(0, 255, (batch_size, *img_size)).float()
     cum = torch.rand((batch_size, cum_len)).float()
 
-    model = MMNet()
+    model = MMNet(backbone='tf_efficientnetv2_s.in1k')
     res = model(cum, img)
     assert res.size() == (batch_size, 8)
     pytorch_total_params = sum(p.numel() for p in model.parameters())

@@ -1,7 +1,9 @@
 from yacs.config import CfgNode as CN
 
 _C = CN()
-_C.MODEL_NAME = 'TEST'
+_C.MODEL = CN()
+_C.MODEL.NAME = 'TEST'
+_C.MODEL.BACKBONE = 'ResNet152v2'
 _C.DATA = CN()
 _C.DATA.BASE_PATH = ''
 _C.DATA.MODS = []
@@ -17,6 +19,4 @@ _C.CUDNN = CN()
 _C.CUDNN.BENCHMARK = False
 _C.CUDNN.DETERMINISTIC = False
 _C.CUDNN.ENABLED = False
-
-_C.MODEL_NAME = "MM-NET"
 

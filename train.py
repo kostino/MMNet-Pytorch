@@ -1,3 +1,5 @@
+import logging
+
 import torch
 from tqdm import tqdm
 
@@ -11,12 +13,14 @@ import numpy as np
 
 from models.mmnet import MMNet
 from data.datasets import ModulationsDataset
-from common.utils import update_config
+from common.utils import update_config, AverageMeter
 from common.config import _C as cfg
 
-cfg = update_config(cfg, 'experiments/MM-Net_full.yaml')
+cfg = update_config(cfg, 'experiments/MM-Net-ENv2_s.yaml')
 
-if torch.cuda.is_available():
+device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
+
+if 'cuda' in device:
     torch.backends.cudnn.benchmark = cfg.CUDNN.BENCHMARK
     torch.backends.cudnn.deterministic = cfg.CUDNN.DETERMINISTIC
     torch.backends.cudnn.enabled = cfg.CUDNN.ENABLED
@@ -46,8 +50,8 @@ val_loader = DataLoader(validation_dataset,
                         num_workers=4,
                         pin_memory=True)
 
-model = MMNet()
-model.cuda()
+model = MMNet(backbone=cfg.MODEL.BACKBONE)
+model.to(device)
 
 optimizer = SGD(model.parameters(), cfg.TRAIN.LEARNING_RATE, momentum=0.9)
 
@@ -59,52 +63,50 @@ def train():
     for epoch in range(cfg.TRAIN.NUM_EPOCHS):
         pbar = tqdm(train_loader, desc='Training Epoch {}/{}'.format(epoch, cfg.TRAIN.NUM_EPOCHS), unit='steps')
         model.train()
-        cum_loss = 0
+        epoch_loss = AverageMeter()
         for step, inp in enumerate(pbar):
 
             optimizer.zero_grad()
 
             images, cumulants, _, labels = inp
 
-            images = images.cuda()
-            cumulants = cumulants.cuda().float()
-            labels = labels.cuda()
+            images = images.to(device, non_blocking=True)
+            cumulants = cumulants.to(device, non_blocking=True).float()
+            labels = labels.to(device, non_blocking=True)
 
             logits = model(cumulants, images)
 
             batch_loss = CrossEntropyLoss()(logits, labels)
             batch_loss.backward()
             optimizer.step()
-            cum_loss += batch_loss.item()
+            epoch_loss.update(batch_loss.item())
 
-            pbar.set_postfix({"last_loss": batch_loss.item()})
+            pbar.set_postfix({"last_loss": batch_loss.item(), "epoch_loss": epoch_loss.average()})
 
-        epoch_loss = cum_loss / STEPS
-        epoch_losses.append(epoch_loss)
+        epoch_losses.append(epoch_loss.average())
         scheduler.step()
 
         pbar = tqdm(val_loader, desc='Validating Epoch {}/{}'.format(epoch, cfg.TRAIN.NUM_EPOCHS), unit='steps')
         model.eval()
-        cum_loss = 0
+        epoch_val_loss = AverageMeter()
         for step, inp in enumerate(pbar):
             with torch.no_grad():
                 images, cumulants, _, labels = inp
 
-                images = images.cuda()
-                cumulants = cumulants.cuda().float()
-                labels = labels.cuda()
+                images = images.to(device, non_blocking=True)
+                cumulants = cumulants.to(device, non_blocking=True).float()
+                labels = labels.to(device, non_blocking=True)
 
                 logits = model(cumulants, images)
 
             batch_loss = CrossEntropyLoss()(logits, labels)
 
-            cum_loss += batch_loss.item()
-            pbar.set_postfix({"last_loss": batch_loss.item()})
+            epoch_val_loss.update(batch_loss.item())
+            pbar.set_postfix({"last_loss": batch_loss.item(), "epoch_loss": epoch_val_loss.average()})
 
-        epoch_val_loss = cum_loss / VAL_STEPS
-        epoch_val_losses.append(epoch_val_loss)
-        if epoch_val_loss <= min(epoch_val_losses):
-            torch.save(model.state_dict(), "./ckpt/" + cfg.MODEL_NAME)
+        epoch_val_losses.append(epoch_val_loss.average())
+        if epoch_val_loss.average() <= min(epoch_val_losses):
+            torch.save(model.state_dict(), "./ckpt/" + cfg.MODEL.NAME)
 
 if __name__ == "__main__":
     train()

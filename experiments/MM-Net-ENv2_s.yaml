@@ -1,7 +1,7 @@
 
 MODEL:
-  NAME: 'MM-Net_full'
-  BACKBONE: 'ResNet152v2'
+  NAME: 'MM-Net_EfficientNetv2_s'
+  BACKBONE: 'tf_efficientnetv2_s.in1k'
 
 CUDNN:
   BENCHMARK: true
