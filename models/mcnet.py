@@ -100,6 +100,40 @@ class MCNet(nn.Module):
         return x
 
 
+class MCNetHOC(nn.Module):
+    def __init__(self, cfg, hoc_channels: int = 32):
+        super().__init__()
+
+        self.backbone = MCNetBackbone(
+            in_channels=cfg['in_channels'],
+            pre_channels=cfg['pre_channels'],
+            block_channels=cfg['block_channels'],
+            last_channels=cfg['last_channels']
+        )
+
+        n_feats = sum(cfg['block_channels'][1:]) + sum(cfg['last_channels'][1:])
+
+        self.hoc_encoder = nn.Linear(in_features=18, out_features=hoc_channels)
+
+        self.featex = nn.Sequential(
+            nn.AdaptiveAvgPool2d((1, 1)),
+            nn.Flatten(1, -1)
+        )
+        self.classifier = nn.Sequential(
+            nn.Linear(in_features=n_feats + hoc_channels, out_features=cfg['classes']),
+            nn.Dropout(0.5),
+            nn.Softmax(-1)
+        )
+
+    def forward(self, x):
+        x1 = self.backbone(x)
+        x2 = self.hoc_encoder(x)
+        x1 = self.featex(x1)
+        x = torch.cat((x1, x2), dim=1)
+        x = self.classifier(x)
+        return x
+
+
 if __name__ == "__main__":
     model = MCNet(MCNetCFGDefault)
     inp = torch.zeros((1, 1, 2, 1024))
