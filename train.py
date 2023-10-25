@@ -6,13 +6,15 @@ if __name__ == "__main__":
     from torch.nn import CrossEntropyLoss
     from torch.profiler import profile, record_function, ProfilerActivity
     from models.fifnet import FiFNet
+    from models.ccnn import CCNN
+    from models.drcnn import DrCNN
     from common.utils import update_config, AverageMeter
     from common.config import _C as cfg
     from common.train_utils import *
     from argparse import ArgumentParser
 
     parser = ArgumentParser()
-    parser.add_argument("-cfg", "--cfg", type=str, default='./experiments/FiFNet.yaml')
+    parser.add_argument("-cfg", "--cfg", type=str, default='./experiments/DrCNN.yaml')
 
     args = parser.parse_args()
 
@@ -22,7 +24,7 @@ if __name__ == "__main__":
 
     train_loader, val_loader = get_dataloaders(cfg)
 
-    model = FiFNet(len(cfg.DATA.MODS), in_channels=3)
+    model = CCNN(hocs=True)
     model.to(device)
 
     optimizer = Adam(model.parameters(), cfg.TRAIN.LEARNING_RATE)
@@ -33,24 +35,8 @@ if __name__ == "__main__":
     epoch_val_losses = []
 
     for epoch in range(cfg.TRAIN.NUM_EPOCHS):
-        pbar = tqdm(train_loader, desc='Training Epoch {}/{}'.format(epoch, cfg.TRAIN.NUM_EPOCHS), unit='steps')
-        model.train()
-        epoch_loss = AverageMeter()
-        for step, inp in enumerate(pbar):
-                optimizer.zero_grad()
-
-                images, cumulants, _, labels = inp
-
-                images = images.to(device, non_blocking=True)
-                cumulants = cumulants.to(device, non_blocking=True).float()
-                labels = labels.to(device, non_blocking=True)
-                logits = model(images, cumulants)
-                batch_loss = criterion(logits, labels)
-                batch_loss.backward()
-                optimizer.step()
-                epoch_loss.update(batch_loss.item())
-                pbar.set_postfix({"last_loss": batch_loss.item(), "epoch_loss": epoch_loss.average()})        #
-        scheduler.step()
+        epoch_loss = train_one_epoch(model, optimizer, scheduler, criterion, train_loader, device, cfg, epoch)
+        epoch_losses.append(epoch_loss.average())
 
         pbar = tqdm(val_loader, desc='Validating Epoch {}/{}'.format(epoch, cfg.TRAIN.NUM_EPOCHS), unit='steps')
         model.eval()

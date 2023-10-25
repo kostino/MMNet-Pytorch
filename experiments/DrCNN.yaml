@@ -1,6 +1,6 @@
 
 MODEL:
-  NAME: 'FiFNet_hocs'
+  NAME: 'CCNN_hocs'
 
 CUDNN:
   BENCHMARK: true
@@ -11,7 +11,7 @@ TRAIN:
   BATCH_SIZE: 48
   VAL_RATIO: 0.2
   LEARNING_RATE: 0.001
-  NUM_EPOCHS: 30
+  NUM_EPOCHS: 10
 
 DATA:
   BASE_PATH: "../AutoModClass/AutoModClass/hybrid_dataset/training/images"

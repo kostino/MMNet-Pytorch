@@ -7,7 +7,8 @@ from data.datasets import ModulationsDataset
 from sklearn.model_selection import train_test_split
 import math
 import warnings
-
+from tqdm import tqdm
+from common.utils import AverageMeter
 
 def _no_grad_trunc_normal_(tensor, mean, std, a, b):
     # Cut & paste from PyTorch official master until it's in a few official releases - RW
@@ -103,6 +104,7 @@ def get_dataloaders(cfg):
 
     return train_loader, val_loader
 
+
 def _init_weights(m: nn.Module) -> None:
     if isinstance(m, nn.Linear):
         trunc_normal_(m.weight, std=.02)
@@ -117,3 +119,29 @@ def _init_weights(m: nn.Module) -> None:
         nn.init.zeros_(m.bias)
         m.eps = 0.001
         m.momentum = 0.1
+
+
+def _train_one_step(model, optimizer, inp, device, epoch_loss, criterion, pbar):
+    optimizer.zero_grad()
+
+    images, cumulants, _, labels = inp
+
+    images = images.to(device, non_blocking=True)
+    cumulants = cumulants.to(device, non_blocking=True).float()
+    labels = labels.to(device, non_blocking=True)
+    logits = model(images, cumulants)
+    batch_loss = criterion(logits, labels)
+    batch_loss.backward()
+    optimizer.step()
+    epoch_loss.update(batch_loss.item())
+    pbar.set_postfix({"last_loss": batch_loss.item(), "epoch_loss": epoch_loss.average()})
+
+
+def train_one_epoch(model, optimizer, scheduler, criterion, train_loader, device, cfg, epoch):
+    pbar = tqdm(train_loader, desc='Training Epoch {}/{}'.format(epoch, cfg.TRAIN.NUM_EPOCHS), unit='steps')
+    model.train()
+    epoch_loss = AverageMeter()
+    for step, inp in enumerate(pbar):
+        _train_one_step(model, optimizer, inp, device, epoch_loss, criterion, pbar)
+    scheduler.step()
+    return epoch_loss
