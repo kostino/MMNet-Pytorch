@@ -67,7 +67,7 @@ class MMNet(nn.Module):
             nn.Linear(16, self.num_class)
         )
 
-    def forward(self, cum, img):
+    def forward(self, img, cum):
         cum_f = self.cum_feat_extract(cum)
         img_f = self.conv_feat_extract(img)
         x = torch.cat((cum_f, img_f), -1)
